@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html ng-app="bnpbApp">
+
+<head>
+    <title>Dashboard | Smart Disaster Map - BNPB/BPBD</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+
+    <meta name="dicoding:email" content="syarifrosidy@gmail.com">
+
+    <meta name="description" content="Sistem Cerdas Penanggulangan Bencana dengan Clustering dan Mapping Sebaran Korban dan Logistik. Sistem ini digunakan sebagai bagian dari kegiatan tanggap bencana. Sistem ini bertujuan untuk mempercepat pemulihan daerah pasca bencana, dengan melakukan pendataan korban serta ketersediaan logistik yang dibutuhkan saat terjadinya bencana.">
+    <meta name="keywords" content="Smart Disaster,Mapping,Clustering,BNPB,BPBD,K-Means">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="assets/static/images/logo-marker.png">
+
+    <style>#loader{transition:all .3s ease-in-out;opacity:1;visibility:visible;position:fixed;height:100vh;width:100%;background:#fff;z-index:90000}#loader.fadeOut{opacity:0;visibility:hidden}.spinner{width:40px;height:40px;position:absolute;top:calc(50% - 20px);left:calc(50% - 20px);background-color:#333;border-radius:100%;-webkit-animation:sk-scaleout 1s infinite ease-in-out;animation:sk-scaleout 1s infinite ease-in-out}@-webkit-keyframes sk-scaleout{0%{-webkit-transform:scale(0)}100%{-webkit-transform:scale(1);opacity:0}}@keyframes sk-scaleout{0%{-webkit-transform:scale(0);transform:scale(0)}100%{-webkit-transform:scale(1);transform:scale(1);opacity:0}}
+    </style>
+    <link href="assets/css/vendors.css" rel="stylesheet">
+    <link href="assets/css/datepicker.css" rel="stylesheet">
+    
+    <link href="assets/libs/chartist/chartist.min.css" rel="stylesheet">
+    <link href="assets/css/bnpb.css" rel="stylesheet">
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-129147716-1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-129147716-1');
+    </script>
+
+</head>
+
+<body class="app is-collapsed">
+    <div id="loader" ng-class="{'fadeOut': !$root.loading}">
+        <div class="spinner"></div>
+    </div>
+    <div>
+        <div class="sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-logo">
+                    <div class="peers ai-c fxw-nw">
+                        <div class="peer peer-greed">
+                            <a class="td-n sidebar-toggle td-n" href="#">
+                                <div class="peers ai-c fxw-nw">
+                                    <div class="peer">
+                                        <div class="logo">
+                                            <img src="assets/static/images/BPBD-indonesia-80.png" height="65" alt="BPBD">
+                                        </div>
+                                    </div>
+                                    <div class="peer peer-greed">
+                                        <h5 class="lh-1 mB-0 logo-text" ng-bind="$root.pageLogoText">Smart Disaster Map</h5>
+                                    </div>
+                                    <i class="ti-angle-left"></i>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="peer">
+                            <div class="mobile-toggle sidebar-toggle">
+                                <a href="" class="td-n">
+                                    <i class="ti-arrow-circle-left"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <ul class="sidebar-menu scrollable pos-r">
+                    <li class="nav-item active">
+                        <a class="sidebar-link" href="https://colorlib.com/polygon/adminator/index.html" default>
+                            <span class="icon-holder">
+                                <i class="c-blue-500 ti-home"></i>
+                            </span>
+                            <span class="title">Dashboard</span>
+                        </a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="sidebar-link" href="email.html">
+                            <span class="icon-holder">
+                                <i class="c-black-500 fa fa-users"></i>
+                            </span>
+                            <span class="title">Pengguna</span>
+                        </a>
+                    </li> -->
+                    <li class="nav-item" ng-if="$root.isLogin">
+                        <!-- <a href="compose.html"> -->
+                        <a class="sidebar-link" href="#" ng-click="$root.doLogout()">
+                            <span class="icon-holder">
+                                <i class="c-black-500 fa fa-sign-out"></i>
+                            </span>
+                            <span class="title">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="page-container">
+
+            <div class="header navbar">
+                <div class="header-container">
+                    <ul class="nav-left">
+                        <li>
+                            <a id="sidebar-toggle" class="sidebar-toggle" href="javascript:void(0);">
+                                <i class="ti-menu"></i>
+                            </a>
+                        </li>
+                    </ul>
+                    <h4 class="header-title" ng-bind="$root.pageTitle">Smart Disaster Mapping - BNPB/BPBD</h4>
+                    <ul class="nav-right">
+                        <li class="dropdown">
+                            <a href="" class="dropdown-toggle no-after peers fxw-nw ai-c lh-1" data-toggle="dropdown">
+                                <div class="peer mR-10">
+                                    <img class="w-2r bdrs-50p" src="assets/static/images/BPBD-indonesia-80.png" alt="">
+                                </div>
+                                <div class="peer">
+                                    <span class="fsz-sm c-grey-900" ng-if="$root.isLogin" ng-bind="$root.loginData.name" data-tooltip="y" title="Account">BNPB - Admin</span>
+                                    <span class="fsz-sm c-grey-900" ng-if="!$root.isLogin">Login Admin</span>
+                                    <i class="fa fa-chevron-down"></i>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu fsz-sm">
+                                <li ng-if="$root.isLogin">
+                                    <a href="#" ng-click="$root.doLogout()" class="d-b td-n pY-5 bgcH-grey-100 c-grey-700">
+                                        <i class="ti-power-off mR-10"></i>
+                                        <span>Logout</span>
+                                    </a>
+                                </li>
+                                <li ng-if="!$root.isLogin">
+                                    <form class="form" style="padding:10px;">
+                                        <div class="form-group">
+                                            <input type="text" class="form-control" placeholder="Username" ng-model="$root.login.username">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="password" class="form-control" placeholder="Password" ng-model="$root.login.password">
+                                        </div>
+                                        <button class="btn btn-primary btn-block" ng-click="$root.doLogin()">Login</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="header header-sub-2 navbar">
+                <div class="header-container">
+                    <ul class="nav-left">
+                        <li class="nav-filter-item">
+                            <label>Lokasi :</label>
+                            <span ng-bind-html="detailKejadian.lokasi.display">Jakarta <i class="fa fa-chevron-right"></i>
+                                Semua Lokasi</span>
+                            <a href="#" data-target="#modal-filter" data-tooltip="y" title="Filter Kejadian Bencana" data-toggle="modal"><i class="fa fa-gears"></i></a>
+                        </li>
+                        <li class="nav-filter-item">
+                            <label>Waktu :</label>
+                            <span ng-bind="detailKejadian.waktu.mulai.display">2014 / Januari</span>
+                            <a href="#" data-target="#modal-filter" data-tooltip="y" title="Filter Kejadian Bencana" data-toggle="modal"><i class="fa fa-gears"></i></a>
+                        </li>
+                    </ul>
+                    <ul class="nav-right">
+                        <li class="nav-filter-item">
+                            <label>Kejadian Bencana :</label>
+                            <span ng-bind="detailKejadian.namaKejadian">Banjir Jakarta Maret - 2014</span>
+                            <a href="#" data-target="#modal-filter" data-tooltip="y" title="Filter Kejadian Bencana" data-toggle="modal"><i class="fa fa-gears"></i></a>
+                        </li>
+                        <li class="nav-filter-item nav-filter-item-btn">
+                            <button href="#" ng-if="$root.isLogin" data-target="#modal-tambah-kejadian" data-toggle="modal" class="btn btn-outline-primary" data-tooltip="y" title="Tambah Kejadian Bencana"><i
+                                    class="fa fa-plus"></i> Kejadian</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <main class="main-content bgc-grey-100">
+
+                <div id="mainContent">
+                    <div class="row gap-20 pos-r">
+
+                        <div class="col-12" ng-controller="mapController">
+                            <div class="bd bgc-white">
+                                <div class="peers fxw-nw@lg+ ai-s">
+                                    <div class="peer peer-greed w-60p@lg+ w-100@md- p-20">
+                                        <div class="layers">
+                                            <div class="layer w-100 mB-10">
+                                                <h6 class="lh-1" ng-bind="title">Mapping Kebencanaan</h6>
+                                            </div>
+                                            <div class="layer w-100">
+                                                <div class="bnpb-map" id="bnpb-map"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="peer bdL p-20 w-40p@lg+ w-100p@md-">
+                                        <div class="layers">
+                                            <div class="layer layer-filter-cluster w-100 mB-5">
+                                                <h6 class="lh-1">Keterangan Kluster</h6>
+                                            </div>
+                                            <!-- <div class="layer layer-filter-cluster w-100 mB-5">
+                                                <h6 class="lh-1">Klustering Berdasarkan</h6>
+                                                <div class="checkbox-custom checkbox-primary cb-filter-cluster">
+                                                    <input type="checkbox" id="filter-korban" checked />
+                                                    <label for="filter-korban">Korban</label>
+                                                </div>
+                                                <div class="checkbox-custom checkbox-primary cb-filter-cluster">
+                                                    <input type="checkbox" id="filter-logistik" checked />
+                                                    <label for="filter-logistik">Logistik</label>
+                                                </div>
+                                                <hr />
+                                            </div>-->
+                                            <div class="layer layer-legend w-100" style="max-height: 550px;">
+                                                <!-- <h6 class="">Keterangan Kluster</h6> -->
+                                                <ul>
+                                                    <li ng-repeat="item in detailKejadian.legends" ng-if="item.memberCount">
+                                                        <strong style="color:{{item[2]}}"><i class="fa fa-square box"></i>
+                                                            <span>{{item[1]}}</span> ({{item.memberCount}} wilayah)</strong>
+                                                        <table width="100%">
+                                                            <!-- <tr>
+                                                                <th colspan="3">Sebaran Korban</th>
+
+                                                                <td class="separator"></td>
+
+                                                                <th colspan="3">Sebaran Logistik</th>
+                                                            </tr> -->
+                                                            <tr>
+                                                                <th width="200"></th>
+                                                                <th></th>
+                                                                <th width="80">Min</th>
+                                                                <th width="80">Rata<sup>2</sup></th>
+                                                                <th width="80">Max</th>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Meninggal</td>
+                                                                <td>:</td>
+                                                                <!-- <td>&gt; 10</td> -->
+
+                                                                <td>{{item.meninggal.min| number : 0}}</td>
+                                                                <td>{{item.meninggal.avg| number : 0}}</td>
+                                                                <td>{{item.meninggal.max| number : 0}}</td>
+
+                                                                <!-- <td class="separator"></td> -->
+
+                                                                <!-- <td>Beras</td>
+                                                                <td>:</td>
+                                                                <td>10 ton</td> -->
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Hilang</td>
+                                                                <td>:</td>
+                                                                <!-- <td>&gt; 4</td> -->
+
+                                                                <td>{{item.hilang.min| number : 0}}</td>
+                                                                <td>{{item.hilang.avg| number : 0}}</td>
+                                                                <td>{{item.hilang.max| number : 0}}</td>
+
+                                                                <!-- <td class="separator"></td> -->
+
+                                                                <!-- <td>Pakaian</td>
+                                                                <td>:</td>
+                                                                <td>3 truk</td> -->
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Luka</td>
+                                                                <td>:</td>
+                                                                <!-- <td>&gt; 343</td> -->
+
+                                                                <td>{{item.luka.min| number : 0}}</td>
+                                                                <td>{{item.luka.avg| number : 0}}</td>
+                                                                <td>{{item.luka.max| number : 0}}</td>
+
+                                                                <!-- <td class="separator"></td> -->
+
+                                                                <!-- <td>Kesehatan</td>
+                                                                <td>:</td>
+                                                                <td>34 orang</td> -->
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Mengungsi</td>
+                                                                <td>:</td>
+                                                                <!-- <td>&gt; 1000</td> -->
+
+                                                                <td>{{item.mengungsi.min| number : 0}}</td>
+                                                                <td>{{item.mengungsi.avg| number : 0}}</td>
+                                                                <td>{{item.mengungsi.max| number : 0}}</td>
+
+                                                                <!-- <td class="separator"></td> -->
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Terdampak</td>
+                                                                <td>:</td>
+                                                                <!-- <td>&gt; 4000</td> -->
+
+                                                                <td>{{item.terdampak.min| number : 0}}</td>
+                                                                <td>{{item.terdampak.avg| number : 0}}</td>
+                                                                <td>{{item.terdampak.max| number : 0}}</td>
+
+                                                                <!-- <td class="separator"></td> -->
+                                                            </tr>
+                                                        </table>
+                                                    </li>
+                                                    <li ng-if="!detailKejadian.legends.length" style="opacity:.5">
+                                                        <i>Tambahkan data Korban untuk melihat kluster</i>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="masonry-item col-md-12" ng-controller="mapController">
+                            <div class="bd bgc-white">
+                                <div class="layers">
+                                    <div class="layer w-100 pX-20 pT-20">
+                                        <h6 class="lh-1" ng-bind="title">Klustering Data Bencana : Banjir Jakarta Maret - 2014</h6>
+                                        <div class="table-result-actions pull-right">
+                                            <select class="form-control"
+                                                ng-change="$root.renderChart()"
+                                                ng-model="$root.chartCluster"
+                                                ng-options="legend[3] as legend[1] for legend in detailKejadian.legends">
+                                                <!-- ng-options="kejadian.idProv as kejadian.namaProv for kejadian in $root.listKejadian"> -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="layer w-100 p-20">
+                                        <div class="graph-container" style="height: 300px;">
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="masonry-item col-md-12" ng-controller="mapController">
+                            <div class="bd bgc-white">
+                                <div class="layers">
+                                    <div class="layer w-100 pX-20 pT-20">
+                                        <h6 class="lh-1" ng-bind="title">Klustering Data Bencana : Banjir Jakarta Maret
+                                            - 2014</h6>
+                                        <div class="table-result-actions pull-right">
+                                            <a ng-if="$root.isLogin" href="#" data-target="#modal-korban" data-toggle="modal" class="btn btn-outline-primary" data-tooltip="y" title="Update/Tambah data korban"><i
+                                                    class="fa fa-plus"></i> Data
+                                                Korban</a>
+                                            <!-- <a href="#" data-target="#modal-logistik" data-toggle="modal" class="btn btn-outline-primary"><i
+                                                    class="fa fa-plus"></i> Data
+                                                Logistik</a> -->
+                                        </div>
+                                    </div>
+                                    <div class="layer w-100 p-20">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="table-result-filter">
+                                                    <strong>Lokasi</strong>
+                                                    <span ng-bind-html="detailKejadian.lokasi.display"></span>
+                                                </div>
+                                                <!-- <div class="table-result-filter"><strong>Klustering Berdasarkan</strong><span>Korban,
+                                                        Logistik</span></div> -->
+                                            </div>
+                                            <div class="col-6 text-right">
+                                                <div class="table-result-filter">
+                                                    <strong class="text-left">Waktu</strong>
+                                                    <span ng-bind-html="detailKejadian.waktu.mulai.display">2018 /
+                                                        Januari</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive" style="max-height:400px;">
+                                            <table class="table table-result table-bordered table-striped table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col" rowspan="2">No</th>
+                                                        <th scope="col" rowspan="2">Kab/Kota</th>
+                                                        <th scope="col" rowspan="2">Kecamatan</th>
+                                                        <th class="text-center" scope="col" colspan="5">Korban</th>
+                                                        <!-- <th scope="col" colspan="3">Logistik</th> -->
+                                                        <th scope="col" rowspan="2">Kluster</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="text-right" scope="col">Meninggal</th>
+                                                        <th class="text-right" scope="col">Hilang</th>
+                                                        <th class="text-right" scope="col">Luka</th>
+                                                        <th class="text-right" scope="col">Mengungsi</th>
+                                                        <th class="text-right" scope="col">Terdampak</th>
+
+                                                        <!-- <th scope="col">Beras</th>
+                                                        <th scope="col">Pakaian</th>
+                                                        <th scope="col">Kesehatan</th> -->
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr ng-repeat="item in detailKejadian.dataList">
+                                                        <th scope="row">{{$index+1}}</th>
+                                                        <td>{{item.namaKota}}</td>
+                                                        <td>{{item.namaKec}}</td>
+
+                                                        <td class="text-right">{{item.korban.meninggal | number : 0}}</td>
+                                                        <td class="text-right">{{item.korban.hilang | number : 0}}</td>
+                                                        <td class="text-right">{{item.korban.luka | number : 0}}</td>
+                                                        <td class="text-right">{{item.korban.mengungsi | number : 0}}</td>
+                                                        <td class="text-right">{{item.korban.terdampak | number : 0}}</td>
+
+                                                        <!-- <td>120</td>Da
+                                                        <td>120</td>
+                                                        <td>120</td> -->
+
+                                                        <td style="font-weight:cold;color:{{item.kluster[2]}}">{{item.kluster[1]}}</td>
+                                                    </tr>
+                                                    <tr ng-if="detailKejadian.dataList.length==0">
+                                                        <td colspan="11" class="text-center">Data Masih Kosong</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            <!-- <footer class="bdT ta-c p-30 lh-0 fsz-sm c-grey-600">
+                <span>Copyright © 2017 Designed by
+                    <a href="https://colorlib.com" target="_blank" title="Colorlib">Colorlib</a>. All rights reserved.</span>
+            </footer> -->
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-filter">
+        <div class="modal-dialog" role="document">
+            <form class="modal-content">
+                <div class="bd p-15">
+                    <h5 class="m-0">Filter Kejadian Bencana</h5>
+                </div>
+                <div class="modal-body">
+                    <h6 class="mB-0">Filter Lokasi</h6>
+                    <hr class="mT-5 mB-5" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Provinsi</label>
+                                <select class="form-control" ng-change="$root.selectProv()" ng-model="$root.selectedIdProv"
+                                    ng-options="kejadian.idProv as kejadian.namaProv for kejadian in $root.listKejadian">
+                                    <!-- <option ng-repeat="kejadian in $root.listKejadian"
+                                         ng-selected="kejadian.idProv == $root.selectedIdProv"
+                                        value="{{kejadian.idProv}}">{{kejadian.namaProv}}</option> -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Kota/Kab.</label>
+                                <select class="form-control" ng-change="$root.selectKota()" ng-model="$root.selectedIdKota"
+                                    ng-options="kota.idKota as kota.namaKota for kota in $root.selectedProv.listKota">
+                                    <!-- <option ng-repeat="kota in $root.selectedProv.listKota"
+                                         ng-selected="kota.idKota == $root.selectedIdKota"
+                                        value="{{kota.idKota}}">{{kota.namaKota}}</option> -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 10px -15px 20px;" />
+
+                    <h6 class="mB-0">Filter Waktu</h6>
+                    <hr class="mT-5 mB-5" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Tahun</label>
+                                <select class="form-control" ng-change="$root.selectTahun()" ng-model="$root.selectedTahun"
+                                    ng-options="tahun for tahun in $root.tahunList">
+                                    <!-- <option>2015</option> -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Bulan</label>
+                                <select class="form-control" ng-change="$root.selectBulan()" ng-model="$root.selectedBulan"
+                                    ng-options="bulan.val as bulan.label for bulan in $root.bulanList">
+                                    <!-- <option>Januari</option> -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 10px -15px 20px;" />
+
+                    <h6 class="mB-0">Pilih Kejadian Bencana</h6>
+                    <hr class="mT-5 mB-10" />
+                    <div class="mB-0">
+                        <div class="form-group">
+                            <select class="form-control" ng-model="$root.selectedKejadian" ng-options="kejadian.idKejadian as kejadian.namaKejadian for kejadian in $root.kejadianList">
+                                <!-- <option>Banjir Jakarta Maret - 2014</option> -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default mr-auto" data-dismiss="modal">Batal</button>
+                    <button class="btn btn-primary" ng-click="$root.selectKejadian('#modal-filter')" ng-disabled="$root.selectedKejadian==0||$root.selectedKejadian==null">Pilih
+                        Kejadian Bencana</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- modal Kejadian -->
+    <div class="modal fade" id="modal-tambah-kejadian">
+        <div class="modal-dialog" role="document">
+            <form class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">
+                        <span>Tambah Kejadian Bencana</span>
+                    </h4>
+                    <button type="button" class="close pull-right" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Jenis Bencana</label>
+                                <select class="form-control" ng-model="$root.selectedBencana" ng-options="b.id as b.bencana for b in $root.listBencana"
+                                    id="ddlBencana">
+                                    <!-- <option ng-repeat="kota in $root.selectedProv.listKota"
+                                             ng-selected="kota.idKota == $root.selectedIdKota"
+                                            value="{{kota.idKota}}">{{kota.namaKota}}</option> -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Tanggal Kejadian</label>
+                                <input type="text" class="form-control tanggal-kejadian input-datepicker" data-date-format="dd-mm-yyyy"
+                                    id="tgl-kjd" ng-model="$root.tanggalKejadian">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Provinsi</label>
+                                <!-- <select class="form-control" ng-change="$root.selectProv()" ng-model="$root.selectedIdProv"
+                                    ng-options="kejadian.idProv as kejadian.namaProv for kejadian in $root.listKejadian">
+                                </select> -->
+                                <select class="form-control" ng-change="$root.selectProv()" ng-model="$root.selectedIdProv">
+                                    <option value="31">DKI Jakarta</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Kota/Kab.</label>
+                                <select class="form-control" ng-model="$root.selectedIdKota"
+                                    ng-options="kota.id as kota.nama for kota in $root.listKota">
+                                    <!-- <option ng-repeat="kota in $root.selectedProv.listKota"
+                                     ng-selected="kota.idKota == $root.selectedIdKota"
+                                    value="{{kota.idKota}}">{{kota.namaKota}}</option> -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="fw-500">Nama Bencana</label>
+                                <input type="text" class="form-control" ng-model="$root.nameKejadian">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default mr-auto" data-dismiss="modal">Batal</button>
+                    <button class="btn btn-primary" ng-click="$root.tambahKejadian('#modal-tambah-kejadian')"
+                        ng-disabled="$root.nameKejadian==null||$root.selectedIdKota==null||$root.tanggalKejadian==null">Tambah
+                        Kejadian Bencana</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- modal data korban -->
+    <div class="modal fade" id="modal-korban">
+        <div class="modal-dialog modal-lg" role="document">
+            <form class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">
+                        <span>Tambah Data Korban</span>
+                    </h4>
+                    <button type="button" class="close pull-right" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <!-- <div class="bd p-15">
+                    <h5 class="m-0"></h5>
+                </div> -->
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="fw-500">Lokasi : </label>
+                                <span ng-bind-html="detailKejadian.lokasi.display">Jakarta <i class="fa fa-chevron-right"></i>
+                                    Semua Lokasi</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="fw-500">Waktu : </label>
+                                <span ng-bind="detailKejadian.waktu.mulai.display">2014 / Januari</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label class="fw-500">Kejadian Bencana :</label>
+                            <span ng-bind="detailKejadian.namaKejadian">Banjir Jakarta Maret - 2014</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label class="fw-500">Kecamatan</label>
+                                <select class="form-control" ng-model="$root.selectedIdKecamatan" ng-change="$root.updatePilihKec()" ng-options="kota.id as kota.name for kota in $root.listKecamatanKorban"
+                                    id="ddlKecamatan">
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label class="fw-500">Jumlah Korban</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Meninggal</label>
+                                <input type="number" min="0" class="form-control" ng-model="$root.jml.meninggal">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Hilang</label>
+                                <input type="number" min="0" class="form-control" ng-model="$root.jml.hilang">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Luka</label>
+                                <input type="number" min="0" class="form-control" ng-model="$root.jml.luka">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Terdampak</label>
+                                <input type="number" min="0" class="form-control" ng-model="$root.jml.terdampak">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Mengungsi</label>
+                                <input type="number" min="0" class="form-control" ng-model="$root.jml.mengungsi">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default mr-auto" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" ng-click="$root.tambahKorban('#modal-korban')" ng-disabled="$root.selectedIdKecamatan==0||$root.jml.meninggal==null||$root.jml.hilang==null||$root.jml.luka==null||$root.jml.terdampak==null||$root.jml.mengungsi==null">Tambah
+                        Data Korban</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- modal logistik -->
+    <div class="modal fade" id="modal-logistik">
+        <div class="modal-dialog" role="document">
+            <form class="modal-content">
+                <div class="bd p-15">
+                    <h5 class="m-0">Tambah Bantuan(Logistik)</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Jenis Logistik</label>
+                                <select class="form-control">
+                                    <option>Pangan</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Jumlah</label>
+                                <input type="number" min="0" value="10" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Provinsi</label>
+                                <select class="form-control">
+                                    <option>Jakarta</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fw-500">Kota/Kab.</label>
+                                <select class="form-control">
+                                    <option>Semua Jakarta</option>
+                                    <option>Jakarta Selatan</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="fw-500">Keterangan</label>
+                                <textarea class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" data-dismiss="modal">Tambah Data Bantuan(Logistik)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="assets/libs/chartist/chartist.min.js"></script>
+    <script src="assets/libs/chartist/plugins/chartist-plugin-legend.js"></script>
+    <script src="assets/libs/chartist/plugins/chartist-plugin-tooltip.js"></script>
+
+    <script type="text/javascript" src="assets/js/bnpb.js"></script>
+
+    <script type="text/javascript" src="https://maps.google.com/maps/api/js?key=AIzaSyAfK2s8rs13YTTuc055PdoJjBYvd1vDywU&libraries=places"></script>
+    <script type="text/javascript" src="assets/geoxml3/polys/geoxml3.js"></script>
+    <script type="text/javascript" src="assets/geoxml3/ProjectedOverlay.js"></script>
+
+    <script type="text/javascript" src="assets/js/bnpb-map.js"></script>
+
+    <script src="assets/libs/angularjs/1.6.3/angular.js"></script>
+    <script src="assets/libs/angular-sanitize/1.6.3/angular-sanitize.min.js"></script>
+    <script src="assets/libs/angular-resource/1.6.3/angular-resource.min.js"></script>
+    <script src="assets/libs/angular-ui-router/0.4.2/angular-ui-router.min.js"></script>
+    <script src="assets/libs/angular-ui-mask/1.8.7/mask.min.js"></script>
+
+    <script src="resources/app/app.js"></script>
+
+    <script src="resources/common/common-service.js"></script>
+
+    <script src="resources/controllers/mapController.js"></script>
+    <script src="resources/controllers/tabelController.js"></script>
+
+</body>
+
+</html>
