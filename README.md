@@ -1,5 +1,4 @@
-# smart-disaster-mapping
-Smart Disaster Mapping with K-Means Clustering
+# Smart Disaster Mapping with K-Means Clustering
 
 Admin Account
 
